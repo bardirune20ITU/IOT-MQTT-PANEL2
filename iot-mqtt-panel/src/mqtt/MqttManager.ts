@@ -1,4 +1,4 @@
-import { connect as mqttConnect } from 'mqtt'
+import mqtt from 'mqtt'
 import type { MqttClient, IClientOptions, IClientPublishOptions } from 'mqtt'
 import { create } from 'zustand'
 import type { ConnectionConfig } from '@/core/types'
@@ -52,7 +52,7 @@ export const useMqttStore = create<MqttStore>((set, get) => ({
     }
 
     try {
-      const client = mqttConnect(url, options)
+      const client = mqtt.connect(url, options) as MqttClient
       client.on('connect', () => {
         set((s: MqttStore) => ({
           connections: {

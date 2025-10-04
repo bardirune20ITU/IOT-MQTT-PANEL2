@@ -6,10 +6,11 @@ import type { ConnectionConfig } from '@/core/types'
 export default function ConnectionForm() {
   const addConnection = useMqttStore((s) => s.addConnection)
   const connect = useMqttStore((s) => s.connect)
+  const defaultBroker = (import.meta as any).env?.VITE_DEFAULT_BROKER_WS || 'wss://test.mosquitto.org:8081'
   const [cfg, setCfg] = useState<ConnectionConfig>({
     id: crypto.randomUUID(),
     name: 'Public Mosquitto',
-    brokerUrl: 'wss://test.mosquitto.org:8081',
+    brokerUrl: defaultBroker,
     protocol: 'wss',
     clientId: `web-${Math.random().toString(16).slice(2)}`,
     keepAlive: 60,

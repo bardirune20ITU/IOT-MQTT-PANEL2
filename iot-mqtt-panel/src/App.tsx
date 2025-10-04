@@ -13,6 +13,7 @@ function App() {
   const connect = useMqttStore((s) => s.connect)
   const addConnection = useMqttStore((s) => s.addConnection)
   const defaultConnId = 'demo-mosquitto'
+  const defaultBroker = (import.meta as any).env?.VITE_DEFAULT_BROKER_WS || 'wss://test.mosquitto.org:8081'
 
   useEffect(() => {
     // Seed a default demo connection and auto-connect
@@ -20,7 +21,7 @@ function App() {
       addConnection({
         id: defaultConnId,
         name: 'Mosquitto Demo',
-        brokerUrl: 'wss://test.mosquitto.org:8081',
+        brokerUrl: defaultBroker,
         protocol: 'wss',
         clientId: `web-${Math.random().toString(16).slice(2)}`,
         keepAlive: 60,

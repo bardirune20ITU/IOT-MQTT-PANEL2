@@ -1,0 +1,10 @@
+{
+  "name": "workspace-root",
+  "private": true,
+  "version": "0.0.0",
+  "scripts": {
+    "build": "cd iot-mqtt-panel && npm ci && npm run build && rm -rf ../dist && cp -r dist ../dist",
+    "test": "cd iot-mqtt-panel && npm test",
+    "typecheck": "cd iot-mqtt-panel && npm run typecheck"
+  }
+}
