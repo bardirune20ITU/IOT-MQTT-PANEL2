@@ -1,17 +1,25 @@
 import './App.css'
+import { useState, useEffect } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import ConnectionForm from '@/components/ConnectionForm'
-import LEDIndicator from '@/widgets/LEDIndicator'
-import ButtonWidget from '@/widgets/ButtonWidget'
-import GaugeWidget from '@/widgets/GaugeWidget'
-import LineChartWidget from '@/widgets/LineChartWidget'
-import TextLog from '@/widgets/TextLog'
+import Dashboard from '@/components/Dashboard'
+import DashboardManager from '@/components/DashboardManager'
+import ThemeSettings from '@/components/ThemeSettings'
+import ExportImport from '@/components/ExportImport'
 import { useMqttStore } from '@/mqtt/MqttManager'
-import { useEffect } from 'react'
+import { useDashboardStore } from '@/stores/dashboardStore'
+import { ThemeProvider } from '@/components/ThemeProvider'
+import { Settings, Plus, Layout, Wifi, WifiOff } from 'lucide-react'
 
 function App() {
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'connections' | 'settings'>('dashboard')
+  const [showDashboardManager, setShowDashboardManager] = useState(false)
+  
   const connections = useMqttStore((s) => s.connections)
   const connect = useMqttStore((s) => s.connect)
   const addConnection = useMqttStore((s) => s.addConnection)
+  const { currentDashboard, dashboards } = useDashboardStore()
+  
   const defaultConnId = 'demo-mosquitto'
   const defaultBroker = (import.meta as any).env?.VITE_DEFAULT_BROKER_WS || 'wss://test.mosquitto.org:8081'
 
@@ -32,49 +40,144 @@ function App() {
     }
   }, [connections])
 
+  const connectionStatus = connections[defaultConnId]?.state?.status || 'disconnected'
+  const isConnected = connectionStatus === 'connected'
+
   return (
-    <div className="min-h-screen text-sm text-white bg-slate-950">
-      <header className="p-4 border-b border-white/10 flex items-center justify-between">
-        <h1 className="text-xl font-semibold">IoT MQTT Panel</h1>
-      </header>
-      <main className="p-4 space-y-4">
-        <ConnectionForm />
-        <section>
-          <h2 className="text-lg mb-2">Demo Dashboard (Mosquitto)</h2>
-          <div className="grid grid-cols-12 gap-3">
-            <div className="col-span-2">
-              <LEDIndicator
-                connectionId={defaultConnId}
-                config={{
-                  name: 'Ceiling Light',
-                  topicSubscribe: 'home/livingroom/light1/state',
-                  parseAsJson: false,
-                  stateMap: [
-                    { match: 'ON', icon: 'bulb', color: '#FFD700', label: 'On', ariaLabel: 'Light on', animation: { type: 'pulse', speed: 1.2 } },
-                    { match: '1', icon: 'bulb', color: '#FFD700', label: 'On', ariaLabel: 'Light on', animation: { type: 'pulse', speed: 1.2 } },
-                    { match: 'OFF', icon: 'bulb_off', color: '#FFFFFF', label: 'Off', ariaLabel: 'Light off', animation: { type: 'none' } },
-                    { match: '0', icon: 'bulb_off', color: '#FFFFFF', label: 'Off', ariaLabel: 'Light off', animation: { type: 'none' } },
-                  ],
-                  defaultState: { icon: 'bulb_off', color: '#DDDDDD', label: 'Unknown', ariaLabel: 'Unknown state' },
-                }}
-              />
+    <ThemeProvider>
+      <div className="min-h-screen text-sm bg-background text-foreground">
+        <header className="p-4 border-b border-border bg-card">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <h1 className="text-xl font-semibold flex items-center gap-2">
+                <Layout className="w-6 h-6" />
+                <span className="hidden sm:inline">IoT MQTT Panel</span>
+                <span className="sm:hidden">IoT Panel</span>
+              </h1>
+              <div className="flex items-center gap-2">
+                {isConnected ? (
+                  <Wifi className="w-4 h-4 text-green-500" />
+                ) : (
+                  <WifiOff className="w-4 h-4 text-red-500" />
+                )}
+                <span className="text-sm text-muted-foreground hidden sm:inline">
+                  {connectionStatus}
+                </span>
+              </div>
             </div>
-            <div className="col-span-2 flex items-center">
-              <ButtonWidget connectionId={defaultConnId} config={{ name: 'Toggle', topicPublish: 'home/livingroom/light1/set', valueTemplate: 'TOGGLE', qos: 0 }} />
-            </div>
-            <div className="col-span-4">
-              <GaugeWidget connectionId={defaultConnId} config={{ name: 'Temperature', topicSubscribe: 'home/livingroom/temp', qos: 0 }} />
-            </div>
-            <div className="col-span-4">
-              <LineChartWidget connectionId={defaultConnId} config={{ name: 'Temp Trend', topicSubscribe: 'home/livingroom/temp', qos: 0 }} />
-            </div>
-            <div className="col-span-12">
-              <TextLog connectionId={defaultConnId} config={{ name: 'Log', topicSubscribe: 'home/+', qos: 0 }} />
+            
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setShowDashboardManager(true)}
+                className="flex items-center gap-2 px-3 py-2 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+              >
+                <Plus className="w-4 h-4" />
+                <span className="hidden sm:inline">New Dashboard</span>
+                <span className="sm:hidden">New</span>
+              </button>
+              <div className="flex border rounded-md">
+                <button
+                  onClick={() => setActiveTab('dashboard')}
+                  className={`px-3 py-2 rounded-l-md transition-colors ${
+                    activeTab === 'dashboard' 
+                      ? 'bg-primary text-primary-foreground' 
+                      : 'hover:bg-muted'
+                  }`}
+                >
+                  <span className="hidden sm:inline">Dashboard</span>
+                  <span className="sm:hidden">Dash</span>
+                </button>
+                <button
+                  onClick={() => setActiveTab('connections')}
+                  className={`px-3 py-2 transition-colors ${
+                    activeTab === 'connections' 
+                      ? 'bg-primary text-primary-foreground' 
+                      : 'hover:bg-muted'
+                  }`}
+                >
+                  <span className="hidden sm:inline">Connections</span>
+                  <span className="sm:hidden">Conn</span>
+                </button>
+                <button
+                  onClick={() => setActiveTab('settings')}
+                  className={`px-3 py-2 rounded-r-md transition-colors ${
+                    activeTab === 'settings' 
+                      ? 'bg-primary text-primary-foreground' 
+                      : 'hover:bg-muted'
+                  }`}
+                >
+                  <Settings className="w-4 h-4" />
+                </button>
+              </div>
             </div>
           </div>
-        </section>
-      </main>
-    </div>
+        </header>
+
+        <main className="p-4">
+          <AnimatePresence mode="wait">
+            {activeTab === 'dashboard' && (
+              <motion.div
+                key="dashboard"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.2 }}
+              >
+                <Dashboard />
+              </motion.div>
+            )}
+            
+            {activeTab === 'connections' && (
+              <motion.div
+                key="connections"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.2 }}
+              >
+                <ConnectionForm />
+              </motion.div>
+            )}
+            
+            {activeTab === 'settings' && (
+              <motion.div
+                key="settings"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.2 }}
+              >
+                <div className="max-w-2xl mx-auto">
+                  <h2 className="text-lg font-semibold mb-4">Settings</h2>
+                  <div className="space-y-6">
+                    <ThemeSettings />
+                    
+                    <ExportImport />
+                    
+                    <div className="p-4 border rounded-lg">
+                      <h3 className="font-medium mb-2">Dashboard Management</h3>
+                      <p className="text-sm text-muted-foreground mb-2">
+                        Create, edit, and manage your dashboards.
+                      </p>
+                      <button
+                        onClick={() => setShowDashboardManager(true)}
+                        className="px-3 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
+                      >
+                        Open Dashboard Manager
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </main>
+
+        {showDashboardManager && (
+          <DashboardManager onClose={() => setShowDashboardManager(false)} />
+        )}
+      </div>
+    </ThemeProvider>
   )
 }
 
